@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 # Load environment variables
 load_dotenv(override=True)
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY = "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"
 
 # Initialize bot and dispatcher
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
