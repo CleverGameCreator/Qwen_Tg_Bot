@@ -36,7 +36,7 @@ async def invoke_llm_api(user_content: str) -> str: # Renamed from invoke_chute
     }
 
     body = {
-        "model": "qwen/qwen3-235b-a22b-07-25:free", # Qwen3 235B A22B 2507 (free)
+        "model": "qwen/qwen3-coder:free", # Рабочая бесплатная модель
         "messages": [
             {
                 "role": "system",
