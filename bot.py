@@ -6,20 +6,15 @@ import aiohttp
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart, Command
-import re
+import re # Add re import for regex
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
 # Load environment variables
 load_dotenv(override=True)
-
-# Получаем токены из .env или напрямую (для теста)
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or "7364340602:AAF9BiSbwBIRztZ55hUQ9ETNkW6CoAyFXyg"
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY") or "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"
-
-if not TELEGRAM_BOT_TOKEN or not OPENROUTER_API_KEY:
-    raise ValueError("Пожалуйста, установите TELEGRAM_BOT_TOKEN и OPENROUTER_API_KEY")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 # Initialize bot and dispatcher
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
@@ -28,17 +23,20 @@ dp = Dispatcher()
 # User preferences storage (in-memory, resets on restart)
 user_prefs = {}
 
-async def invoke_llm_api(user_content: str) -> str:
+async def invoke_llm_api(user_content: str) -> str: # Renamed from invoke_chute
     """Calls the OpenRouter API and returns the streamed response."""
+    if not OPENROUTER_API_KEY:
+        return "Ошибка: Токен OPENROUTER_API_KEY не найден в .env"
+
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
-        "HTTP-Referer": os.getenv("REFERER_URL", "http://localhost"),
-        "X-Title": os.getenv("TITLE_NAME", "Qwen3 Telegram Bot")
+        "HTTP-Referer": os.getenv("REFERER_URL", "http://localhost"), # Use existing env var name
+        "X-Title": os.getenv("TITLE_NAME", "Qwen3 Telegram Bot") # Use existing env var name
     }
 
     body = {
-        "model": "qwen/qwen3-235b-a22b:free",
+        "model": "qwen/qwen3-235b-a22b:free", # Changed model for OpenRouter
         "messages": [
             {
                 "role": "system",
@@ -56,12 +54,12 @@ async def invoke_llm_api(user_content: str) -> str:
     }
 
     full_response = ""
-    api_url = "https://openrouter.ai/api/v1/chat/completions"
+    api_url = "https://openrouter.ai/api/v1/chat/completions" # Changed API URL for OpenRouter
 
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(api_url, headers=headers, json=body) as response:
-                response.raise_for_status()
+                response.raise_for_status() # Raise an exception for bad status codes
                 async for line in response.content:
                     line = line.decode("utf-8").strip()
                     if line.startswith("data: "):
@@ -96,7 +94,7 @@ async def send_welcome(message: types.Message):
 async def toggle_think(message: types.Message):
     """Toggles the display of thought process (if available)."""
     user_id = message.from_user.id
-    current_pref = user_prefs.get(user_id, {"show_thoughts": False})
+    current_pref = user_prefs.get(user_id, {"show_thoughts": False}) # Default to False
     new_pref = not current_pref["show_thoughts"]
     user_prefs[user_id] = {"show_thoughts": new_pref}
 
@@ -115,7 +113,7 @@ async def handle_message(message: types.Message):
     # Indicate that the bot is processing
     processing_message = await message.reply("Обрабатываю ваш запрос...")
 
-    response_text = await invoke_llm_api(message.text)
+    response_text = await invoke_llm_api(message.text) # Changed function call
 
     # Delete the processing message
     await bot.delete_message(chat_id=processing_message.chat.id, message_id=processing_message.message_id)
@@ -124,9 +122,10 @@ async def handle_message(message: types.Message):
     if response_text:
         # Filter out <think> tags if user preference is set to False
         if not show_thoughts:
+            # Use regex to remove <think>...</think> blocks, including newlines inside
             response_text = re.sub(r'<think>.*?</think>\s*', '', response_text, flags=re.DOTALL | re.IGNORECASE).strip()
 
-        if not response_text:
+        if not response_text: # Check if response is empty after filtering
              await message.reply("Ответ содержал только размышления, которые скрыты.")
              return
 
@@ -138,7 +137,9 @@ async def handle_message(message: types.Message):
 
 async def main():
     """Starts the bot."""
-    logging.info("Бот запущен и работает...")
+    if not TELEGRAM_BOT_TOKEN:
+        logging.error("Telegram bot token not found. Set TELEGRAM_BOT_TOKEN in .env file.")
+        return
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
