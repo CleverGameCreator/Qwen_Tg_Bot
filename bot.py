@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 # Load environment variables
 load_dotenv(override=True)
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = "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"
 #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
 # Initialize bot and dispatcher
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
@@ -36,7 +36,7 @@ async def invoke_llm_api(user_content: str) -> str: # Renamed from invoke_chute
     }
 
     body = {
-        "model": "openai/gpt-3.5-turbo", # Для теста работы OpenRouter API
+        "model": "qwen/qwen3-235b-a22b-07-25:free", # Qwen3 235B A22B 2507 (free)
         "messages": [
             {
                 "role": "system",
